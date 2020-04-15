@@ -1,0 +1,143 @@
+{{ header }}
+<div id="account-rastreiomelhorenvio" class="container">
+  <ul class="breadcrumb">
+    {% for breadcrumb in breadcrumbs %}
+    <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if success %}
+  <div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ success }}</div>
+  {% endif %}
+  <div class="row">{{ column_left }}
+    {% if column_left and column_right %}
+    {% set class = 'col-sm-6' %}
+    {% elseif column_left or column_right %}
+    {% set class = 'col-sm-9' %}
+    {% else %}
+    {% set class = 'col-sm-12' %}
+    {% endif %}
+    <div id="content" class="{{ class }}">{{ content_top }}
+      <h1>{{ heading_title_rastreiomelhorenvio }}</h1>
+      <div class="col-sm-12">
+        <form class="form-horizontal" id="form-tracking" method="post" action="{{ action }}">
+          <div class="col-sm-5">
+            <div class="form-group">
+              <label class="col-sm-2" for="input-tracking"><b>{{ column_tracking }}</b></label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="input-tracking" name="tracking_number" placeholder="{{ placeholder_tracking }}">
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-5">
+            <div class="form-group">
+              <label class="col-sm-2" for="select-slug"><b>{{ column_courier }}</b></label>
+              <div class="col-sm-10">
+                <select class="form-control" id="select-slug" name="slug">
+                  <option value="">-NA-</option>
+                  {% for courier in couriers %}
+                    <option value="{{ courier.slug }}">{{ courier.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-2">
+            <button type="submit" class="btn btn-success btn-track" id="button-track" name="button"><i class="fa fa-truck"></i>&nbsp;&nbsp; {{ button_track }}</button>
+          </div>
+        </form>
+      </div>
+      <div class="col-sm-12 tracking-parent" style="display: none;">
+        <p id="tracking-number" class="tracking-number--bar text-center"></p>
+      </div>
+      <div class="col-xs-12" style="display: none;">
+        <div class="text-center" id="tag-status">
+          <p class="tag text-tight"></p>
+        </div>
+      </div>
+      <div class="col-sm-12">
+        <div class="checkpoints" id="panel-body">
+        </div>
+      </div>
+      {{ content_bottom }}</div>
+    {{ column_right }}</div>
+</div>
+<script type="text/javascript">
+  $(document).on('submit', '#form-tracking', function(e) {
+    $('#panel-body').fadeOut();
+    $('#tracking-number').parent().fadeOut('hide');
+    $('#tag-status').parent().fadeOut('hide');
+    $(this).find('.alert-danger').remove();
+    $('#panel-body').find('.alert').remove();
+    $('.alert-warning').remove();
+    if ($('select[name="slug"]').val() == '') {
+      $('select[name="slug"]').parent().append('<div class="alert alert-danger alert-dismissible"><i class="fa fa-check-circle"></i> {{ error_courier }}</div>');
+      return false;
+    }
+    if ($('select[name="tracking_number"]').val() == '') {
+      $('select[name="tracking_number"]').parent().append('<div class="alert alert-danger alert-dismissible"><i class="fa fa-check-circle"></i> {{ error_tracking }}</div>');
+      return false;
+    }
+    e.preventDefault();
+
+    $.ajax({
+      url: $('#form-tracking').attr('action'),
+      type: $('#form-tracking').attr('method'),
+      dataType: 'json',
+      data: $('#form-tracking').serialize(),
+      beforeSend: function() {
+        $('#button-track').button('loading');
+      },
+      success: function(json) {
+        if (typeof json['redirect'] != 'undefined') {
+          window.location = json['redirect'];
+        }
+        $('.alert-tracking').remove();
+        if (typeof json['message'] != 'undefined') {
+          $('#form-tracking').prepend('<div class="alert alert-danger alert-dismissible alert-tracking"><i class="fa fa-exclamation-circle"></i> ' + json['message'] + '</div>');
+        }
+        if (typeof json['error_access'] != 'undefined') {
+          $('#content').prepend('<div class="alert alert-warning alert-dismissible text-center alert-tracking"><i class="fa fa-exclamation-circle"></i> ' + json['error_access'] + '</div>');
+        }
+        if (json['tracking_number']) {
+          $('#tracking-number').text(json['tracking_number']).parent().fadeIn();
+        }
+        if (typeof json['last_tag'] != 'undefined' && json['last_tag']) {
+          $('#tag-status').addClass('tag-'+json['last_tag'].toLowerCase()).parent().fadeIn();
+          $('#tag-status .tag').text(json['last_tag']);
+        }
+        if (typeof json['last_tag'] != 'undefined' && json['last_tag'].toLowerCase() == 'pending') {
+          $('#tag-status').after('<div class="alert alert-info alert-dismissible text-center alert-tracking"><i class="fa fa-exclamation-circle"></i> {{ text_pending_info }}</div>');
+        }
+        if (json['checkpoints'] != 'undefined' && json['checkpoints'].length > 0) {
+          $('.checkpoints__list').remove();
+          var checkpoint_html = '<ul class="checkpoints__list">';
+          for (var c in json['checkpoints']) {
+            checkpoint_html += '<li class="checkpoint">';
+            checkpoint_html += '  <div class="checkpoint__time">';
+            checkpoint_html += '    <strong>' + json['checkpoints'][c]['checkpoint_date'] + '</strong>';
+            checkpoint_html += '    <div class="hint">' + json['checkpoints'][c]['checkpoint_time'] + '</div>';
+            checkpoint_html += '  </div>';
+            checkpoint_html += '   <div class="checkpoint__icon ' + json['checkpoints'][c]['tag'].toLowerCase() + '"></div>';
+            checkpoint_html += '   <div class="checkpoint__content">';
+            checkpoint_html += '     <strong>' + json['checkpoints'][c]['message'];
+            checkpoint_html += '       <span class="checkpoint__courier-name">' + json['checkpoints'][c]['courier'] + '</span>';
+            checkpoint_html += '     </strong>';
+            checkpoint_html += '   <div class="hint">' + json['checkpoints'][c]['location'] + '</div>';
+            checkpoint_html += '  </div>';
+            checkpoint_html += '</li>';
+          } //checkpoint loop
+          checkpoint_html += '</ul>'; // Checkpoint list
+          $('#panel-body').append(checkpoint_html);
+          $('#panel-body').fadeIn();
+        }
+      },
+      complete: function() {
+        $('#button-track').button('reset');
+      },
+      error: function(xhr, response, thrown) {
+        alert(thrown + ': ' + xhr.responseText);
+      },
+    });
+  });
+</script>
+{{ footer }}

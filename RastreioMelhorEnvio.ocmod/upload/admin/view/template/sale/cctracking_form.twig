@@ -1,0 +1,32 @@
+<div class="tracking-form">
+  <fieldset>
+    <legend>{{ heading_title_tracking }}</legend>
+    <form class="form-horizontal" id="form-add-tracking" method="post" action="{{ action }}">
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="input-courier">{{ column_courier }}</label>
+        <div class="col-sm-10">
+          <select id="input-courier" name="slug" class="form-control">
+            {% for courier in couriers %}
+            <option value="{{ courier.rastreiomelhorenvio_courier_id }}" selected="selected">{{ courier.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="input-tracking"><span data-toggle="tooltip" title="{{ help_tracking }}">{{ column_tracking }}</span></label>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" name="tracking_numbers" id="input-tracking"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="input-description">{{ column_comment }}</label>
+        <div class="col-sm-10">
+          <input type="text" name="description" class="form-control" id="input-description" placeholder="{{ column_comment }}">
+        </div>
+      </div>
+    </form>
+  </fieldset>
+  <div class="text-right">
+    <button type="button" id="button-tracking" onclick="createTracking();" data-loading-text="{{ text_loading }}" class="btn btn-primary"><i class="fa fa-plus-circle"></i> {{ button_tracking }}</button>
+  </div>
+</div>

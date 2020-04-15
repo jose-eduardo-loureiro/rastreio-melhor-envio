@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+  <name>Rastreio Melhor Envio</name>
+  <code>CC Rastreio melhor envio</code>
+  <version>1.0.0</version>
+  <author>Criações Criativas</author>
+  <link>https://www.criacoescriativas.com.br</link>
+  <file path="admin/controller/sale/order.php">
+    <operation>
+        <search><![CDATA[
+        $data['text_ip_add'] = sprintf($this->language->get('text_ip_add'),
+        ]]></search>
+        <add position="before"><![CDATA[
+      // Order Tracking Code Starts Here
+      $data['order_tracking_status'] = $this->config->get('module_rastreiomelhorenvio_status');
+      if ($this->config->get('module_rastreiomelhorenvio_status')) {
+        $this->load->language('sale/cctracking');
+      }
+      $data['order_id'] = $order_id;
+      $data['track'] = true;
+			if ($order_info['shipping_country_id'] == 0) {
+				$data['track'] = false;
+			}
+      // Order Tracking Code Starts Here
+          ]]></add>
+    </operation>
+  </file>
+  <file path="admin/view/template/sale/order_info.twig">
+    <operation>
+        <search><![CDATA[
+        <li><a href="#tab-additional" data-toggle="tab">{{ tab_additional
+        ]]></search>
+        <add position="before"><![CDATA[
+         <!-- Order Tracking Code Starts Here -->
+         {% if order_tracking_status %}
+          <li><a href="#tab-tracking" data-toggle="tab">{{ tab_tracking }}</a></li>
+         {% endif %}
+         <!-- Order Tracking Code Ends Here -->
+          ]]></add>
+    </operation>
+    <operation>
+        <search><![CDATA[
+        <div class="tab-pane" id="tab-additional">
+        ]]></search>
+        <add position="before"><![CDATA[
+        <!-- Order Tracking Code Starts Here -->
+         <div class="tab-pane" id="tab-tracking">
+           <div id="tracking"></div>
+           <div id="form-tracking"></div>
+         </div>
+        <!-- Order Tracking Code Ended Here -->
+          ]]></add>
+    </operation>
+    <operation>
+        <search><![CDATA[
+        {{ footer }}
+        ]]></search>
+        <add position="before"><![CDATA[
+<!-- Order Tracking Code Starts Here -->
+<script type="text/javascript">
+  {% if track %}
+    $(window).on('load', function() {
+      $('#tracking').load("index.php?route=sale/cctracking&order_id={{ order_id }}&user_token={{ user_token }}&tracking_table");
+      $('#form-tracking').load("index.php?route=sale/cctracking&order_id={{ order_id }}&user_token={{ user_token }}&tracking_form");
+    });
+    function createTracking() {
+      $.ajax({
+        url: $('#form-add-tracking').attr('action'),
+        type: 'post',
+        dataType: 'json',
+        data: $('#form-add-tracking').serialize(),
+        beforeSend: function() {
+          $('#button-tracking').button('loading');
+        },
+        success: function(json) {
+          $('.alert-tracking').remove();
+          if (json['error']) {
+            $('#tab-tracking').before('<div class="alert alert-danger alert-dismissible alert-tracking"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + '<button type="button" class="close" data-dismiss="alert">×</button></div>');
+           }
+          if (json['success']) {
+            $('#tab-tracking').before('<div class="alert alert-success alert-dismissible alert-tracking"><i class="fa fa-check-circle"></i> ' + json['success'] + '<button type="button" class="close" data-dismiss="alert">×</button></div>');
+            $('#tracking').load("index.php?route=sale/cctracking&order_id={{ order_id }}&user_token={{ user_token }}&tracking_table");
+            $('.deselect-all').click();
+            $('#input-courier option:first').prop('selected', true);
+            $('#input-description').val('');
+            $('#input-tracking').val('');
+          }
+        },
+        complete: function() {
+          $('#button-tracking').button('reset');
+        }
+      });
+    }
+    $(document).on('click', '#tracking-pagination a', function(e) {
+    $('.alert-tracking').remove();
+      e.preventDefault();
+      $('#tracking').load($(this).attr(href) + '&tracking_table');
+    });
+    $(document).on('click', '.select-all', function() {
+      $('.traking-products').prop('checked', true);
+    });
+    $(document).on('click', '.deselect-all', function() {
+      $('.traking-products').prop('checked', false);
+    });
+    $(document).on('click', '.btn-delete-tracking', function(e) {
+      e.preventDefault();
+      $.ajax({
+        url: $(this).attr('href'),
+        type: 'get',
+        dataType: 'json',
+        success: function(json) {
+          $('.alert-tracking').remove();
+          if (json['error']) {
+            $('#tab-tracking').before('<div class="alert alert-danger alert-dismissible alert-tracking"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + '<button type="button" class="close" data-dismiss="alert">×</button></div>');
+          }
+          if (json['success']) {
+            $('#tab-tracking').before('<div class="alert alert-success alert-dismissible alert-tracking"><i class="fa fa-check-circle"></i> ' + json['success'] + '<button type="button" class="close" data-dismiss="alert">×</button></div>');
+            $('#tracking').load("index.php?route=sale/cctracking&order_id={{ order_id }}&user_token={{ user_token }}&tracking_table");
+          }
+        }
+      })
+    });
+    $(document).on('keypress', '#input-tracking', function(e) {
+      var not_allowed = [34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 46, 47, 58, 59, 60, 61, 62, 63, 64, 91, 92, 93, 94, 96, 123, 124, 125, 126];
+      var str = $(this).val();
+      if ((str.length > 0 && str[str.length - 1] == ',' && e.key == ',') || (str[str.length - 1] == ' ' && e.key == ' ') || (str.length == 0 && e.key == ' ') || (str.length == 0 && e.key == ',') || (not_allowed.indexOf(e.which) != -1)) {
+        return false;
+      }
+    });
+{% else %}
+  $('#form-add-tracking').hide();
+  $('#tracking').html('<div class="alert alert-warning alert-tracking"><i class="fa fa-exclamation-circle"></i> {{ error_shipping_address }}</div>');
+{% endif %}
+</script>
+<!-- Order Tracking Code Ends Here -->
+          ]]></add>
+    </operation>
+  </file>
+  <file path="catalog/controller/extension/module/account.php">
+    <operation>
+        <search><![CDATA[
+        $this->load->language('extension/module/account');
+        ]]></search>
+        <add position="after"><![CDATA[
+    // RastreioMelhorEnvio Code Starts Here
+    $data['rastreiomelhorenvio_status'] = $this->config->get('module_rastreiomelhorenvio_status');
+    if ($this->config->get('module_rastreiomelhorenvio_status')) {
+      $this->load->language('account/rastreiomelhorenvio');
+      $data['rastreiomelhorenvio'] = $this->url->link('account/rastreiomelhorenvio', '', true);
+    }
+    // RastreioMelhorEnvio Code Ends Here
+          ]]></add>
+    </operation>
+  </file>
+  <file path="catalog/view/theme/default/template/extension/module/account.twig">
+    <operation>
+        <search><![CDATA[
+        <a href="{{ logout }}" class="list-group-item">{{ text_logout }}</a>
+        ]]></search>
+        <add position="before"><![CDATA[
+  {% if rastreiomelhorenvio_status %}
+  <a href="{{ rastreiomelhorenvio }}" class="list-group-item">{{ heading_title_rastreiomelhorenvio }}</a>
+  {% endif %}
+          ]]></add>
+    </operation>
+  </file>
+  <file path="catalog/controller/account/order.php">
+    <operation>
+        <search><![CDATA[
+        $this->document->setTitle($this->language->get('text_order'));
+        ]]></search>
+        <add position="before"><![CDATA[
+      // Order Tracking Code Starts Here
+
+      $data['order_tracking_status'] = $this->config->get('module_rastreiomelhorenvio_status');
+
+      if ($this->config->get('module_rastreiomelhorenvio_status')) {
+
+        $this->load->language('account/rastreiomelhorenvio');
+        $this->load->model('account/rastreiomelhorenvio');
+
+        $results = $this->model_account_rastreiomelhorenvio->getTrackings($order_id);
+        $data['trackings'] = array();
+        foreach ($results as $result) {
+          $track = 'https://www.melhorrastreio.com.br/rastreio';
+          $tracking_url = '';
+          $slug_url = '';
+          $tracking_url = '';
+          if (isset($result['tracking_number']) && $result['tracking_number']) {
+            if (is_array(explode(',', $result['tracking_number']))) {
+              foreach(explode(',', $result['tracking_number']) as $tracking_number) {
+                $tracking_url .= '<a href="' . $track . '/' . $tracking_number .'" target="_blank">' . $tracking_number . '</a>,';
+              }
+            } else {
+              $tracking_url = '<a href="'. $track .'" target="_blank">'.$result['tracking_number'].'</a>';
+            }
+          } else {
+            $tracking_url = '';
+          }
+          if (isset($result['slug']) && $result['slug']) {
+            $slug = $this->model_account_rastreiomelhorenvio->getCourierBySlug($result['slug']);
+            if ($slug) {
+              $slug_url = '<a href="' . $slug['web_url'] . '" target="_blank">' . $slug['name'] . '</a>';
+            } else {
+              $slug_url = $result['slug'];
+            }
+          }
+          $data['trackings'][] = array(
+            'id'          => $result['rastreiomelhorenvio_tracking_id'],
+            'tracking'    => rtrim($tracking_url, ','),
+            'comment'     => $result['comment'],
+            'slug'        => $slug_url
+          );
+        }
+      }
+      $data['order_id'] = $order_id;
+      // Order Tracking Code Starts Here
+          ]]></add>
+    </operation>
+  </file>
+  <file path="catalog/view/theme/default/template/account/order_info.twig">
+    <operation>
+        <search><![CDATA[
+        {% if comment %}
+        ]]></search>
+        <add position="before"><![CDATA[
+      <!-- Order Tracking Code Starts Here -->
+      {% if order_tracking_status and trackings %}
+        <h3>{{ text_tracking }}</h3>
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>{{ column_comment }}</th>
+              <th>{{ column_tracking }}</th>
+              <th>{{ column_courier }}</th>
+            </tr>
+          </thead>
+          <thead>
+            {% for tracking in trackings %}
+            <tr>
+              <td>{{ tracking.comment }}</td>
+              <td>{{ tracking.tracking }}</td>
+              <td>{{ tracking.slug }}</td>
+            </tr>
+            {% endfor %}
+          </thead>
+        </table>
+      {% endif %}
+      <!-- Order Tracking Code Ends Here -->
+          ]]></add>
+    </operation>
+  </file>
+<file path="catalog/view/theme/journal3/template/account/order_info.twig">
+    <operation>
+        <search><![CDATA[
+        {% if comment %}
+        ]]></search>
+        <add position="before"><![CDATA[
+      <!-- Order Tracking Code Starts Here -->
+      {% if order_tracking_status and trackings %}
+        <h2 class="title">{{ text_tracking }}</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                <th>{{ column_tracking }}</th>
+                <th>{{ column_courier }}</th>
+                <th>{{ column_comment }}</th>
+                </tr>
+            </thead>
+            <thead>
+                {% for tracking in trackings %}
+                <tr>
+                  <td>{{ tracking.tracking }}</td>
+                  <td>{{ tracking.slug }}</td>
+                  <td>{{ tracking.comment }}</td>
+                </tr>
+                {% endfor %}
+            </thead>
+            </table>
+        </div>
+      {% endif %}
+      <!-- Order Tracking Code Ends Here -->
+          ]]></add>
+    </operation>
+  </file>  
+</modification>

@@ -1,0 +1,34 @@
+<div id="tracking-table">
+  <div class="table-responsive">
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <td class="text-left">{{ column_date }}</td>
+          <td class="text-left">{{ column_tracking }}</td>
+          <td class="text-left">{{ column_courier }}</td>
+          <td class="text-left">{{ column_action }}</td>
+        </tr>
+      </thead>
+      <tbody>
+        {% if trackings %}
+        {% for tracking in trackings %}
+        <tr>
+          <td class="text-left">{{ tracking.date_added }}</td>
+          <td class="text-left">{{ tracking.tracking }}</td>
+          <td class="text-left">{{ tracking.slug }}</td>
+          <td class="text-left"><a href="{{ tracking.delete }}" class="btn btn-danger btn-delete-tracking" data-toggle="tooltip" title="{{ column_delete }}" class="btn btn-danger btn-delete"><i class="fa fa-trash"></i></a>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td class="text-center" colspan="4">{{ text_no_results }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div class="row" id="tracking-pagination">
+    <div class="col-sm-6 text-left">{{ pagination }}</div>
+    <div class="col-sm-6 text-right">{{ results }}</div>
+  </div>
+</div>
